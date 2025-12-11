@@ -61,6 +61,92 @@ void loop() {
                     <!-- Результаты будут добавлены здесь -->
                 </div>
             </div>
+            
+            <div class="card" id="visualComparisonContainer" style="display: none;">
+                <h2><i class="fas fa-eye"></i> Визуальное сравнение кодов</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="user-code">Ваш код</button>
+                    <button class="tab-btn" data-tab="reference-code">Эталонный код</button>
+                    <button class="tab-btn" data-tab="side-by-side">Сравнение</button>
+                </div>
+                
+                <div class="tab-content active" id="user-code">
+                    <div class="code-wrapper">
+                        <div id="userCodeVisual" class="visual-code"></div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color match"></span>
+                            <span>Совпадающие символы</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color mismatch"></span>
+                            <span>Несовпадающие символы</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color extra"></span>
+                            <span>Лишние символы</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color missing"></span>
+                            <span>Отсутствующие символы</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="reference-code">
+                    <div class="code-wrapper">
+                        <div id="referenceCodeVisual" class="visual-code"></div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color match"></span>
+                            <span>Совпадающие символы</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color mismatch"></span>
+                            <span>Несовпадающие символы</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color extra"></span>
+                            <span>Лишние символы</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color missing"></span>
+                            <span>Отсутствующие символы</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="side-by-side">
+                    <div class="side-by-side-container">
+                        <div class="side-by-side">
+                            <div class="side-code">
+                                <h3>Ваш код</h3>
+                                <div class="code-wrapper">
+                                    <div id="userCodeSide" class="visual-code"></div>
+                                </div>
+                            </div>
+                            <div class="side-code">
+                                <h3>Эталонный код</h3>
+                                <div class="code-wrapper">
+                                    <div id="referenceCodeSide" class="visual-code"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color match"></span>
+                            <span>Совпадающие символы</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color mismatch"></span>
+                            <span>Несовпадающие символы</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
     
