@@ -5,6 +5,7 @@ let minutes = 0;
 let hours = 0;
 let timerRunning = false;
 let userStartedTyping = false;
+let comparisonData = null;
 
 // Элементы DOM
 const timerDisplay = document.getElementById('timerDisplay');
@@ -13,6 +14,13 @@ const stopTimerBtn = document.getElementById('stopTimerBtn');
 const timerStatus = document.getElementById('timerStatus');
 const resultsContainer = document.getElementById('resultsContainer');
 const comparisonResults = document.getElementById('comparisonResults');
+const visualComparisonContainer = document.getElementById('visualComparisonContainer');
+const userCodeVisual = document.getElementById('userCodeVisual');
+const referenceCodeVisual = document.getElementById('referenceCodeVisual');
+const userCodeSide = document.getElementById('userCodeSide');
+const referenceCodeSide = document.getElementById('referenceCodeSide');
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
 
 // Инициализация редактора кода
 const codeEditor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
@@ -91,6 +99,7 @@ function resetTimer() {
     
     // Скрываем результаты сравнения
     resultsContainer.style.display = 'none';
+    visualComparisonContainer.style.display = 'none';
 }
 
 // Функция обновления статуса таймера
@@ -146,9 +155,16 @@ function compareCode() {
         .then(referenceCode => {
             // Выполняем сравнение
             const comparisonResult = compareTwoCodes(userCode, referenceCode);
+            comparisonData = comparisonResult;
             
             // Отображаем результаты
             displayComparisonResults(comparisonResult);
+            
+            // Создаем визуальное сравнение
+            createVisualComparison(userCode, referenceCode, comparisonResult.charAnalysis);
+            
+            // Показываем контейнер визуального сравнения
+            visualComparisonContainer.style.display = 'block';
         })
         .catch(error => {
             console.error('Ошибка загрузки эталонного кода:', error);
@@ -167,8 +183,11 @@ function compareTwoCodes(code1, code2) {
     const normalizedCode1 = normalizeCode(code1);
     const normalizedCode2 = normalizeCode(code2);
     
+    // Анализ символов с получением данных для визуализации
+    const charAnalysis = analyzeCharacters(code1, code2);
+    
     // Сравнение по символам
-    const charSimilarity = calculateCharSimilarity(normalizedCode1, normalizedCode2);
+    const charSimilarity = charAnalysis.similarity;
     
     // Сравнение по строкам
     const linesSimilarity = calculateLinesSimilarity(code1, code2);
@@ -196,8 +215,116 @@ function compareTwoCodes(code1, code2) {
         userCodeLength: code1.length,
         referenceCodeLength: code2.length,
         userLines: code1.split('\n').length,
-        referenceLines: code2.split('\n').length
+        referenceLines: code2.split('\n').length,
+        charAnalysis: charAnalysis
     };
+}
+
+// Анализ символов для визуализации
+function analyzeCharacters(code1, code2) {
+    const lines1 = code1.split('\n');
+    const lines2 = code2.split('\n');
+    
+    // Подготовка данных для визуализации
+    const visualData = {
+        userCode: [],
+        referenceCode: [],
+        similarity: 0
+    };
+    
+    // Сравниваем построчно
+    const maxLines = Math.max(lines1.length, lines2.length);
+    let totalChars = 0;
+    let matchingChars = 0;
+    
+    for (let i = 0; i < maxLines; i++) {
+        const line1 = i < lines1.length ? lines1[i] : '';
+        const line2 = i < lines2.length ? lines2[i] : '';
+        
+        const lineComparison = compareLineCharacters(line1, line2);
+        
+        visualData.userCode.push(lineComparison.line1);
+        visualData.referenceCode.push(lineComparison.line2);
+        
+        totalChars += lineComparison.totalChars;
+        matchingChars += lineComparison.matchingChars;
+    }
+    
+    visualData.similarity = totalChars > 0 ? (matchingChars / totalChars) * 100 : 0;
+    
+    return visualData;
+}
+
+// Сравнение символов в строке
+function compareLineCharacters(line1, line2) {
+    const result = {
+        line1: [],
+        line2: [],
+        totalChars: Math.max(line1.length, line2.length),
+        matchingChars: 0
+    };
+    
+    const maxLength = Math.max(line1.length, line2.length);
+    
+    for (let j = 0; j < maxLength; j++) {
+        const char1 = j < line1.length ? line1[j] : '';
+        const char2 = j < line2.length ? line2[j] : '';
+        
+        if (char1 === char2 && char1 !== '') {
+            // Совпадающие символы
+            result.line1.push({
+                char: char1,
+                type: 'match'
+            });
+            result.line2.push({
+                char: char2,
+                type: 'match'
+            });
+            result.matchingChars++;
+        } else if (char1 !== '' && char2 !== '' && char1 !== char2) {
+            // Несовпадающие символы
+            result.line1.push({
+                char: char1,
+                type: 'mismatch'
+            });
+            result.line2.push({
+                char: char2,
+                type: 'mismatch'
+            });
+        } else if (char1 !== '' && char2 === '') {
+            // Лишние символы в коде пользователя
+            result.line1.push({
+                char: char1,
+                type: 'extra'
+            });
+            result.line2.push({
+                char: ' ',
+                type: 'missing'
+            });
+        } else if (char1 === '' && char2 !== '') {
+            // Отсутствующие символы в коде пользователя
+            result.line1.push({
+                char: ' ',
+                type: 'missing'
+            });
+            result.line2.push({
+                char: char2,
+                type: 'extra'
+            });
+        } else {
+            // Пустые символы (пробелы)
+            result.line1.push({
+                char: ' ',
+                type: 'space'
+            });
+            result.line2.push({
+                char: ' ',
+                type: 'space'
+            });
+        }
+    }
+    
+    return result;
 }
 
 // Нормализация кода
@@ -207,22 +334,6 @@ function normalizeCode(code) {
         .replace(/\/\/.*?\n/g, '') // Удаляем однострочные комментарии
         .replace(/\/\*.*?\*\//g, '') // Удаляем многострочные комментарии
         .trim();
-}
-
-// Сравнение по символам
-function calculateCharSimilarity(code1, code2) {
-    if (code1 === code2) return 100;
-    
-    const maxLength = Math.max(code1.length, code2.length);
-    let matchingChars = 0;
-    
-    for (let i = 0; i < maxLength; i++) {
-        if (i < code1.length && i < code2.length && code1[i] === code2[i]) {
-            matchingChars++;
-        }
-    }
-    
-    return (matchingChars / maxLength) * 100;
 }
 
 // Сравнение по строкам
@@ -315,6 +426,48 @@ function calculateStructureSimilarity(code1, code2) {
     }
     
     return Math.min(score, 100);
+}
+
+// Создание визуального сравнения
+function createVisualComparison(userCode, referenceCode, charAnalysis) {
+    // Отображение кода пользователя с подсветкой
+    displayCodeWithHighlight(userCodeVisual, charAnalysis.userCode);
+    
+    // Отображение эталонного кода с подсветкой
+    displayCodeWithHighlight(referenceCodeVisual, charAnalysis.referenceCode);
+    
+    // Отображение для side-by-side сравнения
+    displayCodeWithHighlight(userCodeSide, charAnalysis.userCode);
+    displayCodeWithHighlight(referenceCodeSide, charAnalysis.referenceCode);
+}
+
+// Отображение кода с подсветкой
+function displayCodeWithHighlight(element, codeData) {
+    let html = '';
+    
+    codeData.forEach(line => {
+        html += '<div class="code-line">';
+        line.forEach(charData => {
+            const char = charData.char === ' ' ? '&nbsp;' : escapeHtml(charData.char);
+            const className = charData.type !== 'space' ? `char-${charData.type}` : '';
+            html += `<span class="${className}">${char}</span>`;
+        });
+        html += '</div>';
+    });
+    
+    element.innerHTML = html;
+}
+
+// Экранирование HTML
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 // Отображение результатов сравнения
@@ -435,6 +588,22 @@ codeEditor.on('change', function(instance, changeObj) {
 // Обработчики кнопок таймера
 resetTimerBtn.addEventListener('click', resetTimer);
 stopTimerBtn.addEventListener('click', stopTimer);
+
+// Обработчики вкладок
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Убираем активный класс у всех кнопок
+        tabBtns.forEach(b => b.classList.remove('active'));
+        // Добавляем активный класс текущей кнопке
+        btn.classList.add('active');
+        
+        // Скрываем все вкладки
+        tabContents.forEach(content => content.classList.remove('active'));
+        // Показываем выбранную вкладку
+        const tabId = btn.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+    });
+});
 
 // Обработка горячих клавиш
 document.addEventListener('keydown', function(e) {
